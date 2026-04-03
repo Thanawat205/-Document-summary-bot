@@ -21,21 +21,27 @@
 
 ```mermaid
 graph TD
-    A[ผู้ใช้ / ระบบภายนอก] -->|ส่งข้อความ/เอกสาร| B(Webhook Trigger)
-    B --> C[Code Node]
-    C -->|จัดเตรียม/แปลงข้อมูล| D{AI Agent}
-    D -.->|ส่งคำสั่ง| E((Gemini API))
-    E -.->|ส่งผลการสรุป| D
-    D --> F{IF Node}
-    F -->|สรุปสำเร็จ/เงื่อนไขผ่าน| G[Discord: Notify Summary]
-    F -->|เกิดข้อผิดพลาด| H[Discord: Notify Error]
-    
-    classDef trigger fill:#f9c23c,stroke:#333,stroke-width:2px,color:black;
-    classDef process fill:#6b8af2,stroke:#333,stroke-width:2px,color:white;
-    classDef ai fill:#a866f2,stroke:#333,stroke-width:2px,color:white;
-    classDef notify fill:#5865F2,stroke:#333,stroke-width:2px,color:white;
-    
-    class B trigger;
-    class C,F process;
-    class D,E ai;
-    class G,H notify;
+    %% สร้างโหนด (Nodes)
+    A(["1. Discord Trigger (รอรับไฟล์ PDF จากผู้ใช้)"])
+    B["2. Extract from File (สกัดตัวอักษรจากไฟล์ PDF)"]
+    C{"3. HTTP Request (ส่งให้ Gemini API สรุปเนื้อหา)"}
+    D["4. Code Node (หั่นข้อความไม่ให้เกิน 1,900 ตัวอักษร)"]
+    E(["5. Discord: Send Message (ส่งข้อความสรุปกลับเข้าห้องแชท)"])
+
+    %% ทิศทางการไหลของข้อมูล (Edges)
+    A -->|ส่งไฟล์ PDF| B
+    B -->|ส่งข้อความดิบ Text| C
+    C -->|ได้บทสรุปยาวๆ| D
+    D -->|ส่งข้อความที่หั่นแล้ว| E
+
+    %% กำหนดสไตล์ (Class Definitions)
+    classDef discordNode fill:#5865F2,stroke:#ffffff,stroke-width:2px,color:#ffffff,rx:10px,ry:10px;
+    classDef processNode fill:#F4A261,stroke:#ffffff,stroke-width:2px,color:#ffffff,rx:10px,ry:10px;
+    classDef aiNode fill:#2A9D8F,stroke:#ffffff,stroke-width:2px,color:#ffffff,rx:10px,ry:10px;
+    classDef codeNode fill:#E9C46A,stroke:#ffffff,stroke-width:2px,color:#333333,rx:10px,ry:10px;
+
+    %% นำสไตล์ไปผูกกับโหนด (Assign Classes)
+    class A,E discordNode;
+    class B processNode;
+    class C aiNode;
+    class D codeNode;
