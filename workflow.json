@@ -1,0 +1,252 @@
+{
+  "name": "document-summary-bot-demo",
+  "nodes": [
+    {
+      "parameters": {
+        "guildIds": [
+          "1496446194941956209"
+        ],
+        "channelIds": [
+          "1496446280904478730"
+        ],
+        "pattern": "regex",
+        "value": ".*",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-discord-trigger.discordTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "1dd83e55-0fa5-4007-8f8e-655ec119173a",
+      "name": "Discord Trigger",
+      "credentials": {
+        "discordBotTriggerApi": {
+          "id": "iYHy9K3Mo9INpSlV",
+          "name": "Discord Bot Trigger Demo"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "operation": "getAll",
+        "guildId": {
+          "__rl": true,
+          "value": "1496446194941956209",
+          "mode": "list",
+          "cachedResultName": "Document Summary Bot Demo",
+          "cachedResultUrl": "https://discord.com/channels/1496446194941956209"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1496446280904478730",
+          "mode": "list",
+          "cachedResultName": "document-summary-bot-demo",
+          "cachedResultUrl": "https://discord.com/channels/1496446194941956209/1496446280904478730"
+        },
+        "limit": 1,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "1ab51aab-dc70-4eed-8403-63d25503261a",
+      "name": "Get many messages",
+      "webhookId": "2d18b0ff-3c4a-443f-bd13-015329a23071",
+      "credentials": {
+        "discordBotApi": {
+          "id": "AhwQBzKPJ4jn11cc",
+          "name": "Discord Bot account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.attachments[0].url }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "e4126cd9-e34d-4e1b-adae-f8041da897de",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        624,
+        0
+      ],
+      "id": "d55cb7ba-1536-4167-a46b-c6bec50f468b",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=AIzaSyA4AGWdF90di0etOncllF98Ss8Rm8_6nMM",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{\nJSON.stringify({\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"ช่วยสรุปเนื้อหาสำคัญจากข้อความนี้เป็นภาษาไทยให้หน่อย : \" + $node[\"Extract from File\"].json[\"text\"]\n        }\n      ]\n    }\n  ]\n})\n}}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        832,
+        0
+      ],
+      "id": "f9ffb338-b3a1-4294-92f1-47e8913481c5",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ดึงข้อความสรุปจาก Gemini (อ้างอิงจาก path เดิมของคุณ)\nlet text = $input.item.json.candidates[0].content.parts[0].text;\n\n// ตั้งค่าความยาวสูงสุดต่อ 1 ข้อความ (ตั้งไว้ 1900 เพื่อความปลอดภัย ไม่ให้ชน 2000)\nlet maxLength = 1900; \nlet chunks = [];\n\n// หั่นข้อความเป็นท่อนๆ\nfor (let i = 0; i < text.length; i += maxLength) {\n  chunks.push(text.substring(i, i + maxLength));\n}\n\n// ส่งข้อความแต่ละท่อนออกไปเป็น Item ย่อยๆ ให้ n8n ทำงานต่อ\nreturn chunks.map(chunk => {\n  return {\n    json: {\n      messageChunk: chunk\n    }\n  };\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1024,
+        0
+      ],
+      "id": "8e0f0f78-a018-42d8-951d-852ee83a9b21",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "guildId": {
+          "__rl": true,
+          "value": "1496446194941956209",
+          "mode": "list",
+          "cachedResultName": "Document Summary Bot Demo",
+          "cachedResultUrl": "https://discord.com/channels/1496446194941956209"
+        },
+        "channelId": {
+          "__rl": true,
+          "value": "1496446280904478730",
+          "mode": "list",
+          "cachedResultName": "document-summary-bot-demo",
+          "cachedResultUrl": "https://discord.com/channels/1496446194941956209/1496446280904478730"
+        },
+        "content": "={{ $json.messageChunk }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        0
+      ],
+      "id": "eb58a64d-b517-4b91-b5a8-f9a59c7237f2",
+      "name": "Send a message",
+      "webhookId": "f24bfdac-a62b-4cbb-bf1b-42378bd4ab99",
+      "credentials": {
+        "discordBotApi": {
+          "id": "AhwQBzKPJ4jn11cc",
+          "name": "Discord Bot account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Discord Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get many messages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get many messages": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "b3ab8f71-3c9e-488a-a1e1-5926f240109b",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "3805c9c650c8d89ea06f04a8c1422d36b0f60778a8d7bee10c7d18fde25c2847"
+  },
+  "id": "YWqhgUaTzOPaXLos",
+  "tags": []
+}
